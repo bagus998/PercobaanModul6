@@ -32,6 +32,7 @@ The RecyclerView is updated to show the new contact list whenever a contact is a
 Clearing Input Fields:
 
 The clearData() method resets the EditText fields to empty.
+
 2. ContactAdapter Class
 
 Purpose: This class is responsible for binding the contact data to the views in the RecyclerView.
@@ -53,6 +54,7 @@ When a contact item is clicked, it starts the DetailContactActivity with the con
 getItemCount():
 
 Returns the size of the contact list, which determines how many items the RecyclerView will display.
+
 3. ContactModel Class
 
 Purpose: Represents a contact with attributes like name, number, group, and Instagram.
@@ -60,6 +62,7 @@ Purpose: Represents a contact with attributes like name, number, group, and Inst
 Logic:
 
 Contains getter and setter methods for each attribute, allowing the adapter to access and modify contact data.
+
 4. DetailContactActivity Class
 
 Purpose: Displays detailed information about a selected contact.
@@ -69,6 +72,7 @@ Logic:
 Retrieves contact details passed from the ContactAdapter and displays them.
 Provides buttons to call, message, or view the contact's Instagram profile.
 Includes a back link to return to the previous activity.
+
 5. RecyclerView Functionality
 
 Initialization: The RecyclerView is initialized in ContactActivity with a LinearLayoutManager, which allows for vertical scrolling.
