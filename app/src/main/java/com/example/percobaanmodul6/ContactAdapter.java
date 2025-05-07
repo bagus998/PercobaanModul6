@@ -12,6 +12,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -19,17 +20,23 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ContactViewHolder> {
 
     private Context context;
     private List<ContactModel> contactList;
+    private ContactDatabase contactDatabase;
+    private ExecutorService executorService;
 
     private static ClickListener clickListener;
 
     public ContactAdapter(Context context, ArrayList<ContactModel> contactList){
         this.context = context;
         this.contactList = contactList;
+        this.contactDatabase = ContactDatabase.getInstance(context);
+        this.executorService = Executors.newSingleThreadExecutor();
     }
 
     @NonNull
@@ -71,6 +78,10 @@ public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ContactV
             context.startActivity(sendIntent);
         });
 
+        holder.tvDelete.setOnClickListener(v -> {
+            deleteContact(contact, position);
+        });
+
         holder.contactLayout.setOnClickListener(v -> {
             String dataName = holder.tvName.getText().toString();
             String dataNumber = holder.tvNumber.getText().toString();
@@ -87,7 +98,24 @@ public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ContactV
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(intent);
         });
+    }
 
+    private void deleteContact(ContactModel contact, int position) {
+        executorService.execute(() -> {
+            try {
+                contactDatabase.contactDao().delete(contact);
+                ((Activity) context).runOnUiThread(() -> {
+                    contactList.remove(position);
+                    notifyItemRemoved(position);
+                    notifyItemRangeChanged(position, contactList.size());
+                    Toast.makeText(context, "Contact deleted successfully", Toast.LENGTH_SHORT).show();
+                });
+            } catch (Exception e) {
+                ((Activity) context).runOnUiThread(() -> {
+                    Toast.makeText(context, "Error deleting contact: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
     }
 
     @Override
