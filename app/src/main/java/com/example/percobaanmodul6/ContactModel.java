@@ -1,8 +1,17 @@
 package com.example.percobaanmodul6;
 
-public class ContactModel {
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
 
-    private String name, number, group, instagram;
+@Entity(tableName = "contacts")
+public class ContactModel {
+    @PrimaryKey(autoGenerate = true)
+    private int id;
+    
+    private String name;
+    private String number;
+    private String group;
+    private String instagram;
 
     public ContactModel(String name, String number, String group, String instagram) {
         this.name = name;
@@ -10,6 +19,9 @@ public class ContactModel {
         this.group = group;
         this.instagram = instagram;
     }
+
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
 
     public String getName() {
         return name;
@@ -42,5 +54,4 @@ public class ContactModel {
     public void setInstagram(String instagram) {
         this.instagram = instagram;
     }
-
 }

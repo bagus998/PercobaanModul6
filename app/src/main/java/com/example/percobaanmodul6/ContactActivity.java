@@ -11,12 +11,18 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.os.AsyncTask;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ContactActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
+    private ContactDatabase contactDatabase;
+    private ExecutorService executorService;
 
     private TextView option;
     private LinearLayout layAddContact;
@@ -31,6 +37,9 @@ public class ContactActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_contact);
 
+        executorService = Executors.newSingleThreadExecutor();
+        contactDatabase = ContactDatabase.getInstance(this);
+
         recyclerView = findViewById(R.id.recycle_contact);
         recyclerView.setHasFixedSize(true);
 
@@ -44,57 +53,90 @@ public class ContactActivity extends AppCompatActivity {
         btnSubmit = findViewById(R.id.btn_submit);
 
         option.setOnClickListener(v -> {
-            if (recyclerView.getVisibility() == View.VISIBLE){
+            if (recyclerView.getVisibility() == View.VISIBLE) {
                 recyclerView.setVisibility(View.GONE);
                 layAddContact.setVisibility(View.VISIBLE);
                 clearData();
-
-            }else {
+            } else {
                 recyclerView.setVisibility(View.VISIBLE);
                 layAddContact.setVisibility(View.GONE);
             }
         });
 
-        btnClear.setOnClickListener(v -> {
-            clearData();
-        });
+        btnClear.setOnClickListener(v -> clearData());
 
         btnSubmit.setOnClickListener(v -> {
             if (etName.getText().toString().equals("") ||
                     etNumber.getText().toString().equals("") ||
                     etInstagram.getText().toString().equals("") ||
-                    etGroup.getText().toString().equals("") ){
+                    etGroup.getText().toString().equals("")) {
                 Toast.makeText(this, "Please fill in the entire form", Toast.LENGTH_SHORT).show();
             } else {
-                contactList.add(new ContactModel(etName.getText().toString(), etNumber.getText().toString(), etGroup.getText().toString(), etInstagram.getText().toString()));
-                contactAdapter = new ContactAdapter(this, contactList);
-                recyclerView.setAdapter(contactAdapter);
-                recyclerView.setVisibility(View.VISIBLE);
-                layAddContact.setVisibility(View.GONE);
+                ContactModel contact = new ContactModel(
+                    etName.getText().toString(),
+                    etNumber.getText().toString(),
+                    etGroup.getText().toString(),
+                    etInstagram.getText().toString()
+                );
+                insertContact(contact);
+                clearData();
             }
         });
-
-        contactList.add(new ContactModel("Jusuf Latifah", "+62878555504", "bussines", "bayerhilarious"));
-        contactList.add(new ContactModel("Burhanuddin Taufik", "+628785555041", "family", "integersjunior"));
-        contactList.add(new ContactModel("Latifah Bagus", "+628785555042", "study", "clearcarbon"));
-        contactList.add(new ContactModel("Agung Nurul", "+628785555043", "family", "opticalwwf"));
-        contactList.add(new ContactModel("Cahaya Krisna", "+628785555044", "bussiness", "gisremedy"));
 
         contactAdapter = new ContactAdapter(this, contactList);
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(ContactActivity.this);
         recyclerView.setLayoutManager(layoutManager);
-        contactAdapter.setOnItemClickListener((position, v) -> {
-            contactList.remove(position);
-            contactAdapter = new ContactAdapter(this, contactList);
-            recyclerView.setAdapter(contactAdapter);
-        });
         recyclerView.setAdapter(contactAdapter);
+
+        // Load contacts from database
+        loadContacts();
     }
 
-    public void clearData(){
+    private void insertContact(ContactModel contact) {
+        executorService.execute(() -> {
+            try {
+                contactDatabase.contactDao().insert(contact);
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Contact added successfully", Toast.LENGTH_SHORT).show();
+                    loadContacts();
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Error adding contact: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
+    private void loadContacts() {
+        executorService.execute(() -> {
+            try {
+                List<ContactModel> contacts = contactDatabase.contactDao().getAllContacts();
+                runOnUiThread(() -> {
+                    contactList.clear();
+                    contactList.addAll(contacts);
+                    contactAdapter.notifyDataSetChanged();
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Error loading contacts: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
+    public void clearData() {
         etName.setText("");
         etNumber.setText("");
         etInstagram.setText("");
         etGroup.setText("");
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (executorService != null) {
+            executorService.shutdown();
+        }
     }
 }
